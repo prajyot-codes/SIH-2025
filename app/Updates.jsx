@@ -7,25 +7,11 @@ const initial = [
 ]
 
 export default function Updates() {
-  const [posts, setPosts] = React.useState(initial)
-  const [title, setTitle] = React.useState('')
-  const [body, setBody] = React.useState('')
-
-  const add = () => {
-    if(!title||!body) return alert('fill both')
-    setPosts([{ id: String(Date.now()), title, body }, ...posts])
-    setTitle(''); setBody('')
-  }
+  const [posts] = React.useState(initial)
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>General Updates</Text>
-
-      <View style={styles.form}>
-        <TextInput placeholder="Title" value={title} onChangeText={setTitle} style={styles.input} />
-        <TextInput placeholder="Body" value={body} onChangeText={setBody} style={[styles.input, {height:80}]} multiline />
-        <TouchableOpacity style={styles.postBtn} onPress={add}><Text style={{color:'#fff'}}>Post (admin)</Text></TouchableOpacity>
-      </View>
 
       <FlatList
         data={posts}
