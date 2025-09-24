@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, Image, Animated } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, Image, Animated, FlatList, ActivityIndicator, Dimensions } from 'react-native'
 import { useRouter } from 'expo-router'
 
 const Card = ({ title, subtitle, image, onPress }) => {
@@ -22,39 +22,125 @@ const Card = ({ title, subtitle, image, onPress }) => {
 
 export default function Main() {
   const router = useRouter()
+  const [articles, setArticles] = React.useState(null)
+  const [carouselIndex, setCarouselIndex] = React.useState(0)
+  const listRef = React.useRef(null)
+  const positionRef = React.useRef(0)
+  const baseNRef = React.useRef(5)
+  const { width } = Dimensions.get('window')
+  const CARD_W = Math.min(320, width - 72)
+
+  // Frontend-only sample bus system updates (show until backend admin feed is available)
+  const busUpdates = [
+    { id: 'b1', title: 'Route A Timings Updated', image: require('../assets/bus1.jpeg') },
+    { id: 'b2', title: 'Extra Service This Weekend', image: require('../assets/bus2.jpeg') },
+    { id: 'b3', title: 'New Stop Added', image: require('../assets/bus3.jpeg') },
+    { id: 'b4', title: 'Maintenance Notice', image: require('../assets/bus4.jpeg') },
+    { id: 'b5', title: 'Fare Update', image: require('../assets/bus5.jpeg') },
+    { id: 'b6', title: 'Lost & Found', image: require('../assets/bus1.jpeg') },
+    { id: 'b7', title: 'Service Improvements', image: require('../assets/bus2.jpeg') },
+    { id: 'b8', title: 'Weather Advisory', image: require('../assets/bus3.jpeg') },
+  ]
+
+  const shuffle = (arr) => arr.slice().sort(() => Math.random() - 0.5)
+
+  React.useEffect(() => {
+    let mounted = true
+    async function load(){
+      // we will show frontend updates only for the carousel demo
+      const picks = shuffle(busUpdates).slice(0,5)
+      baseNRef.current = picks.length
+      // append a cloned first item so we can scroll to index N (clone) before jumping to 0
+      const clone = { ...picks[0], id: `${picks[0].id}_clone` }
+      if(mounted) setArticles([...picks, clone])
+    }
+    load()
+
+    // auto-swipe timer: every 2 seconds advance forward-only in a circular way
+    const t = setInterval(()=>{
+      // use positionRef to keep a mutable position
+  const N = baseNRef.current || 5
+  let pos = positionRef.current + 1
+      // scroll to next position (may be the cloned item at index N)
+      if(listRef.current){
+        listRef.current.scrollToOffset({ offset: pos * (CARD_W + 12), animated: true })
+      }
+      // update visible index for dots/indicator (wrap for display)
+      setCarouselIndex(pos % N)
+      positionRef.current = pos
+
+      // if we've moved to the cloned first item (pos === N), schedule a jump back to real first
+      if(pos === N){
+        // after the animated scroll finishes, jump back to 0 without animation
+        setTimeout(()=>{
+          if(listRef.current){
+            listRef.current.scrollToOffset({ offset: 0, animated: false })
+          }
+          positionRef.current = 0
+          setCarouselIndex(0)
+        }, 350) // slightly longer than the scroll animation to ensure smoothness
+      }
+    }, 2000)
+
+    return ()=>{ mounted = false; clearInterval(t) }
+  }, [])
 
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>SmartBus</Text>
+      <Text style={styles.heading}>𝘽us𝙈itra</Text>
       <Text style={styles.subheading}>Choose a service</Text>
 
       <Card
         title="Book Ticket"
         subtitle="Reserve your seat from source to destination"
-        image={require('../assets/splash-icon.png')}
+        image={require('../assets/bookTicket.jpeg')}
         onPress={() => router.push('/BookTicket')}
       />
 
       <Card
         title="Where To Go"
         subtitle="See routes and buses between places"
-        image={require('../assets/icon.png')}
+        image={require('../assets/whereToGo.png')}
         onPress={() => router.push('/WhereToGo')}
       />
 
       <Card
         title="Where Am I"
         subtitle="View your location and live buses on map"
-        image={require('../assets/adaptive-icon.png')}
+        image={require('../assets/map.jpeg')}
         onPress={() => router.push('/WhereAmI')}
       />
 
-      <Card
-        title="General Updates"
-        subtitle="Latest news and admin posts"
-        image={require('../assets/favicon.png')}
-        onPress={() => router.push('/Updates')}
-      />
+      <View style={{marginTop:12}}>
+        <Text style={{color:'#fff', fontSize:18, fontWeight:'700', marginBottom:8}}>General Updates</Text>
+        {articles ? (
+          <View>
+            <FlatList
+              ref={listRef}
+              data={articles}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              pagingEnabled={false}
+              snapToInterval={CARD_W + 12}
+              decelerationRate="fast"
+              keyExtractor={(i,idx)=>i.id || String(idx)}
+              contentContainerStyle={{paddingVertical:6}}
+              renderItem={({item})=> (
+                <View style={[styles.carouselCard, {width: CARD_W, marginRight:12}]}> 
+                  <Image source={item.image} style={styles.carouselImage} />
+                  <Text style={styles.carouselTitle} numberOfLines={2}>{item.title}</Text>
+                </View>
+              )}
+            />
+          </View>
+        ) : (
+          <Text style={{color:'#9ca3af'}}>Loading updates…</Text>
+        )}
+      </View>
+
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>Made with <Text style={{color:'#ef4444'}}>♥</Text> by Team</Text>
+      </View>
     </View>
   )
 }
@@ -63,6 +149,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 18,
+    paddingBottom: 88,
     backgroundColor: '#0f172a',
   },
   heading: {
@@ -98,4 +185,9 @@ const styles = StyleSheet.create({
   },
   cardTitle: { color: '#fff', fontSize: 18, fontWeight: '600' },
   cardSubtitle: { color: '#9ca3af', marginTop: 4 },
+  carouselCard: { backgroundColor: '#07162a', borderRadius: 10, padding: 10, alignItems: 'center' },
+  carouselImage: { width: '100%', height: 140, borderRadius: 8, marginBottom: 8 },
+  carouselTitle: { color: '#fff', fontWeight: '700', textAlign: 'center' },
+  footer: { position: 'absolute', bottom: 18, left: 0, right: 0, alignItems: 'center', padding: 10 },
+  footerText: { color: '#9ca3af' },
 })
