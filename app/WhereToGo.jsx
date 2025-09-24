@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput } from 'react-native'
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native'
 import { useRouter } from 'expo-router';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -120,7 +120,10 @@ export default function WhereToGo() {
       )}
 
       {loadingMap && (
-        <View style={styles.center}><Text style={{ color: '#fff' }}>Loading map...</Text></View>
+        <View style={styles.loadingFull}>
+          <ActivityIndicator size="large" color="#0ea5a4" />
+          <Text style={{ color: '#fff', marginTop: 16, fontSize: 18, fontWeight: '600' }}>Loading map...</Text>
+        </View>
       )}
 
       {showMap && userLoc && busStopLoc && routeCoords.length > 0 && (
@@ -170,4 +173,5 @@ const styles = StyleSheet.create({
   sub: { color: '#9ca3af', marginTop: 6 },
   busBtn: { backgroundColor: '#0ea5a4', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, alignItems: 'center' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#041025' },
+  loadingFull: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 100, backgroundColor: '#041025', justifyContent: 'center', alignItems: 'center' },
 });

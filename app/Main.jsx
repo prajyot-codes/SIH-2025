@@ -1,6 +1,7 @@
 import React from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, Image, Animated, FlatList, ActivityIndicator, Dimensions } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, Image, Animated, FlatList, ActivityIndicator, Dimensions, Modal, TextInput, Alert } from 'react-native'
 import { useRouter } from 'expo-router'
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Card = ({ title, subtitle, image, onPress }) => {
   const scale = React.useRef(new Animated.Value(1)).current
@@ -24,6 +25,21 @@ export default function Main() {
   const router = useRouter()
   const [articles, setArticles] = React.useState(null)
   const [carouselIndex, setCarouselIndex] = React.useState(0)
+  const [loggedIn, setLoggedIn] = React.useState(false)
+  // Load login state from AsyncStorage on mount
+  React.useEffect(() => {
+    AsyncStorage.getItem('loggedIn').then(val => {
+      if (val === 'true') setLoggedIn(true);
+    });
+  }, []);
+
+  // Save login state to AsyncStorage whenever it changes
+  React.useEffect(() => {
+    AsyncStorage.setItem('loggedIn', loggedIn ? 'true' : 'false');
+  }, [loggedIn]);
+  const [showLogin, setShowLogin] = React.useState(false)
+  const [username, setUsername] = React.useState('')
+  const [password, setPassword] = React.useState('')
   const listRef = React.useRef(null)
   const positionRef = React.useRef(0)
   const baseNRef = React.useRef(5)
@@ -87,14 +103,33 @@ export default function Main() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>𝘽us𝙈itra</Text>
-      <Text style={styles.subheading}>Choose a service</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Text style={styles.heading}>𝘽us𝙈itra</Text>
+        <TouchableOpacity
+          style={styles.loginBtn}
+          onPress={() => {
+            if (loggedIn) {
+              setLoggedIn(false);
+            } else {
+              setShowLogin(true);
+            }
+          }}
+        >
+          <Text style={{ color: '#fff', fontWeight: '700' }}>{loggedIn ? 'Logout' : 'Login'}</Text>
+        </TouchableOpacity>
+      </View>
 
       <Card
         title="Book Ticket"
         subtitle="Reserve your seat from source to destination"
         image={require('../assets/bookTicket.jpeg')}
-        onPress={() => router.push('/BookTicket')}
+        onPress={() => {
+          if (!loggedIn) {
+            Alert.alert('Login Required', 'Please log in to book a ticket.');
+          } else {
+            router.push('/BookTicket');
+          }
+        }}
       />
 
       <Card
@@ -141,6 +176,52 @@ export default function Main() {
       <View style={styles.footer}>
         <Text style={styles.footerText}>Made with <Text style={{color:'#ef4444'}}>♥</Text> by Team</Text>
       </View>
+
+      <Modal
+        visible={showLogin}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowLogin(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.loginModal}>
+            <Text style={{ fontSize: 22, fontWeight: '700', marginBottom: 18, color: '#eaf3f3ff' }}>Login</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Username"
+              placeholderTextColor="#9ca3af"
+              value={username}
+              onChangeText={setUsername}
+              autoCapitalize="none"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor="#9ca3af"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+            />
+            <TouchableOpacity
+              style={[styles.submitBtn, { marginTop: 18 }]}
+              onPress={() => {
+                setLoggedIn(true);
+                setShowLogin(false);
+                setUsername('');
+                setPassword('');
+              }}
+            >
+              <Text style={{ color: '#fff', fontWeight: '700' }}>Submit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ marginTop: 10, alignItems: 'center' }}
+              onPress={() => setShowLogin(false)}
+            >
+              <Text style={{ color: '#eeeef2ff', fontWeight: '700' }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   )
 }
@@ -190,4 +271,41 @@ const styles = StyleSheet.create({
   carouselTitle: { color: '#fff', fontWeight: '700', textAlign: 'center' },
   footer: { position: 'absolute', bottom: 18, left: 0, right: 0, alignItems: 'center', padding: 10 },
   footerText: { color: '#9ca3af' },
+  loginBtn: {
+    backgroundColor: '#0c146bff',
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+    submitBtn: {
+      backgroundColor: '#070b74ff', // orange
+      paddingVertical: 8,
+      paddingHorizontal: 18,
+      borderRadius: 8,
+      alignItems: 'center',
+    },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loginModal: {
+    width: 320,
+    backgroundColor: '#0f172a',
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    elevation: 8,
+  },
+  input: {
+    backgroundColor: '#f3f4f6',
+    color: '#222',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 8,
+    width: '100%',
+  },
 })
